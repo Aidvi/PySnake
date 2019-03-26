@@ -3,31 +3,28 @@ import random
 from pygame.locals import *
 import pygame
 
-
-class cube(object):
+class cube():
     rows = 20
-    w = 500
+    window = 500
+    dir_x = 0
+    dir_y = 0
 
-    def __init__(self, start, dir_x=1, dir_y=0, color=(255, 0, 0)):
-        self.pos = start
-        self.dir_x = 1
-        self.dir_y = 0
+    def __init__(self, pos, color=(255, 0, 0)):
+        self.pos = pos
         self.color = color
 
     def move(self, dir_x, dir_y):
         self.dir_x = dir_x
         self.dir_y = dir_y
         self.pos = (self.pos[0] + self.dir_x, self.pos[1] + self.dir_y)
-
-    def draw(self, surface, eyes=False):
-        distance = self.w // self.rows
+    def draw(self, surface):
+        distance = self.window // self.rows
         cube_row = self.pos[0]
         cube_column = self.pos[1]
 
         pygame.draw.rect(surface, self.color, (cube_row*distance+1, cube_column*distance+1, distance-2, distance-2))
 
-
-class snake(object):
+class snake():
     body = []
     turns = {}
 
@@ -44,6 +41,7 @@ class snake(object):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
+                return 'quit'
 
             keys = pygame.key.get_pressed()
 
@@ -125,9 +123,6 @@ class snake(object):
 
     def draw(self, surface):
         for i, c in enumerate(self.body):
-            if i == 0: ## Checks if its the first snake "Cube", if so. it should have eyes, so we can see where the head is.
-                c.draw(surface, True)
-            else:
                 c.draw(surface)
 
 class game():
@@ -138,18 +133,20 @@ class game():
         self.player = snake((255, 0, 0), (10, 10))
         self.snack = cube(self.random_snack(self.rows, self.player), color=(0, 255, 0))
 
-    def redraw_window(self,window):
-        window.fill((0, 0, 0))
+    def redraw_window(self, window):
+        color = (0, 0, 0)
+        window.fill(color)
         self.player.draw(window)
         self.snack.draw(window)
         pygame.display.update()
 
-    def random_snack(self,rows, player):
+    def random_snack(self, rows, player):
         positions = player.body
 
         while True:
             x = random.randrange(rows)
             y = random.randrange(rows)
+            #Check if random position overlaps with snake
             if len(list(filter(lambda it: it.pos == (x, y), positions))) > 0:
                 continue
             else:
@@ -157,29 +154,28 @@ class game():
 
         return x, y
 
-
     def start(self):
         window = pygame.display.set_mode((self.width, self.height))
         game = True
 
-        clock = pygame.time.Clock()  ## Does so the game does not run more than 10 frames per sec
+        clock = pygame.time.Clock()
         while game:
             pygame.time.delay(50)  ## Delays the game with a few milisec so it doesnt run too fast
             clock.tick(60)
-            self.player.event_handler()
+            if self.player.event_handler() == 'quit':
+                break
+
             if self.player.body[0].pos == self.snack.pos:
                 self.player.add_cube()
                 self.snack = cube(self.random_snack(self.rows, self.player), color=(0, 255, 0))
 
             for x in range(len(self.player.body)):
-                if self.player.body[x].pos in list(map(lambda it: it.pos, self.player.body[x + 1:])):
+                if self.player.body[x].pos in list(map(lambda it: it.pos, self.player.body[x + 1:])): ## Checks if the player is dead.
                     print("Score: ", len(self.player.body))
                     self.player.reset((10, 10))
                     break
 
             self.redraw_window(window)
 
-        pass
 game = game()
-game.start();
-
+game.start()
